@@ -10,8 +10,8 @@ import (
         "time"
         "os"
         "io"
-        //"fmt"
         "encoding/json"
+        "github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var c metrics.Counter
@@ -38,14 +38,18 @@ func main() {
 		Handler:   &handler{},
 		TLSConfig: cfg,
 	}
-        log.Print("Starting server at https://127.0.0.1:8443")
+
+	log.Print("Starting server at https://127.0.0.1:8443")
 	log.Fatal(srv.ListenAndServeTLS("server.crt", "server.key"))
+
+        http.Handle("/metrics", promhttp.Handler())
+        http.ListenAndServe(":2112", nil)
+
 }
 
 type handler struct{}
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	var records int64 = 0
         dec := json.NewDecoder(req.Body)
         for {
             var doc string
@@ -54,8 +58,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
             if err == io.EOF {
                break
             }
-            records += 1
+	    c.Inc(1)
        }
-       c.Inc(records)
-       w.Write([]byte("PONG"))
+       w.Write([]byte("{\"status\":\"ok\",\"errors\":false}"))
 }

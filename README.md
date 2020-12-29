@@ -3,6 +3,13 @@
 This is a simple HTTPs Server that meassure the numbers of JSON records received per second.
 Upon start it listens on TCP/TLS port ```8443``` .
 
+## Build
+
+Install the dependencies
+
+```
+go get github.com/prometheus/client_golang/prometheus/promhttp
+```
 
 ## Running the Server
 
@@ -31,7 +38,7 @@ In ```https-benchmark-server``` stderr you should see some stats like this:
 
 
 ```
-$ ./https_benchmark_server 
+$ ./https_benchmark_server
 2020/12/27 23:11:55 Starting server at https://127.0.0.1:8443
 metrics: 23:11:58.164353 counter records
 metrics: 23:11:58.164377   count:           39266
