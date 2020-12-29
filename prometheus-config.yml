@@ -1,0 +1,11 @@
+global:
+  scrape_interval:     5s 
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'https-benchmark-server'
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+    - targets: ['127.0.0.1:8443']
