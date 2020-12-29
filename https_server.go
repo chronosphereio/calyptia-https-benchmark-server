@@ -45,6 +45,7 @@ func main() {
 type handler struct{}
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var records int64 = 0
         dec := json.NewDecoder(req.Body)
         for {
             var doc string
@@ -53,7 +54,8 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
             if err == io.EOF {
                break
             }
-            c.Inc(1)
+            records += 1
        }
+       c.Inc(records)
        w.Write([]byte("PONG"))
 }
