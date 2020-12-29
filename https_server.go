@@ -6,12 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-        "github.com/rcrowley/go-metrics"
         "time"
         "os"
         "io"
         "encoding/json"
 	"github.com/gorilla/mux"
+        "github.com/rcrowley/go-metrics"
 	"github.com/prometheus/client_golang/prometheus"
         "github.com/prometheus/client_golang/prometheus/promhttp"
 )
