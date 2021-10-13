@@ -30,10 +30,13 @@ var (
 func defaultURI(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	for {
-		var doc string
+		var doc interface{}
 
 		err := dec.Decode(&doc)
 		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Printf("ERROR: %s", err)
 			break
 		}
 		counter.Inc()
