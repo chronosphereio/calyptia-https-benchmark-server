@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -19,6 +20,8 @@ import (
 
 var c metrics.Counter
 
+var printRecords bool
+
 type handler struct{}
 
 var (
@@ -32,11 +35,14 @@ var (
 func defaultURI(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	for {
-		var doc string
+		var doc map[string]interface{}
 
 		err := dec.Decode(&doc)
 		if err == io.EOF {
 			break
+		}
+		if printRecords {
+			fmt.Println("parsed record:", doc)
 		}
 		counter.Inc()
 		c.Inc(1)
@@ -46,6 +52,7 @@ func defaultURI(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	printMetrics := flag.Bool("printmetrics", false, "print metrics to the console")
+	flag.BoolVar(&printRecords, "printrecords", true, "print request records")
 	flag.Parse()
 
 	c = metrics.NewCounter()
