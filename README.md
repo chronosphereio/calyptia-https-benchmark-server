@@ -13,6 +13,7 @@ go get github.com/gorilla/mux
 go get github.com/rcrowley/go-metrics
 go get github.com/prometheus/client_golang/prometheus
 go get github.com/prometheus/client_golang/prometheus/promhttp
+go get github.com/linkedin/goavro
 ```
 
 ## Build and Run the Server

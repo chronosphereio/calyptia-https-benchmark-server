@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/linkedin/goavro"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rcrowley/go-metrics"
@@ -20,6 +21,7 @@ import (
 
 var c metrics.Counter
 
+var codec *goavro.Codec
 var printRecords bool
 
 type handler struct{}
@@ -32,7 +34,21 @@ var (
 		})
 )
 
-func defaultURI(w http.ResponseWriter, r *http.Request) {
+func avroHandler(w http.ResponseWriter, r *http.Request) {
+	bodyData, _ := ioutil.ReadAll(r.Body)
+	record, _, err := codec.NativeFromBinary(bodyData)
+	if err != nil {
+		fmt.Println("error parsing avro data:", err)
+	}
+	if printRecords {
+		fmt.Println("parsed record:", record)
+	}
+	counter.Inc()
+	c.Inc(1)
+	w.Write([]byte("{\"status\":\"ok\",\"errors\":false}"))
+}
+
+func jsonHandler(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	for {
 		var doc map[string]interface{}
@@ -52,8 +68,21 @@ func defaultURI(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	printMetrics := flag.Bool("printmetrics", false, "print metrics to the console")
+	avroSchema := flag.String("avro-schema-path", "", "specify file path containing avro schema. this disables json parsing.")
 	flag.BoolVar(&printRecords, "printrecords", true, "print request records")
 	flag.Parse()
+
+	if *avroSchema != "" {
+		schemaData, err := ioutil.ReadFile(*avroSchema)
+		if err != nil {
+			log.Fatal(err)
+		}
+		avroCodec, err := goavro.NewCodec(string(schemaData))
+		if err != nil {
+			log.Fatal(err)
+		}
+		codec = avroCodec
+	}
 
 	c = metrics.NewCounter()
 	metrics.Register("records", c)
@@ -82,7 +111,11 @@ func main() {
 
 	r := mux.NewRouter()
 	r.Handle("/metrics", promhttp.Handler())
-	r.PathPrefix("/").HandlerFunc(defaultURI)
+	if codec != nil {
+		r.PathPrefix("/").HandlerFunc(avroHandler)
+	} else {
+		r.PathPrefix("/").HandlerFunc(jsonHandler)
+	}
 	http.Handle("/", r)
 
 	log.Print("Starting server at https://127.0.0.1:8443")
