@@ -3,20 +3,21 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rcrowley/go-metrics"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-        "time"
-        "os"
-        "io"
-        "encoding/json"
-	"github.com/gorilla/mux"
-        "github.com/rcrowley/go-metrics"
-	"github.com/prometheus/client_golang/prometheus"
-        "github.com/prometheus/client_golang/prometheus/promhttp"
+	"os"
+	"time"
 )
 
 var c metrics.Counter
+
 type handler struct{}
 
 var (
@@ -43,11 +44,11 @@ func defaultURI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-        c  = metrics.NewCounter()
-        metrics.Register("records", c)
+	c = metrics.NewCounter()
+	metrics.Register("records", c)
 
-        go metrics.Log(metrics.DefaultRegistry, 1 * time.Second,
-                       log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
+	go metrics.Log(metrics.DefaultRegistry, 1*time.Second,
+		log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
 
 	caCert, err := ioutil.ReadFile("client.crt")
 	if err != nil {
@@ -57,7 +58,7 @@ func main() {
 	caCertPool.AppendCertsFromPEM(caCert)
 	cfg := &tls.Config{
 		//ClientAuth: tls.RequireAndVerifyClientCert,
-		ClientCAs:  caCertPool,
+		ClientCAs: caCertPool,
 	}
 	srv := &http.Server{
 		Addr:      ":8443",
