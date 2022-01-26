@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"flag"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -44,11 +45,16 @@ func defaultURI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	printMetrics := flag.Bool("printmetrics", false, "print metrics to the console")
+	flag.Parse()
+
 	c = metrics.NewCounter()
 	metrics.Register("records", c)
 
-	go metrics.Log(metrics.DefaultRegistry, 1*time.Second,
-		log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
+	if *printMetrics {
+		go metrics.Log(metrics.DefaultRegistry, 1*time.Second,
+			log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
+	}
 
 	caCert, err := ioutil.ReadFile("client.crt")
 	if err != nil {
