@@ -1,14 +1,9 @@
-FROM golang:1.15
-
-RUN go get github.com/gorilla/mux
-RUN go get github.com/rcrowley/go-metrics
-RUN go get github.com/prometheus/client_golang/prometheus
-RUN go get github.com/prometheus/client_golang/prometheus/promhttp
-RUN go get github.com/linkedin/goavro
+FROM golang:1.17
 
 WORKDIR /go/src/https-benchmark-server
 COPY . .
 
+RUN go mod download
 RUN go build
 RUN go install
 
