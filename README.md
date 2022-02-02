@@ -9,11 +9,7 @@ The service works in the TCP/TLS port ```8443```
 Install Go dependencies
 
 ```bash
-go get github.com/gorilla/mux
-go get github.com/rcrowley/go-metrics
-go get github.com/prometheus/client_golang/prometheus
-go get github.com/prometheus/client_golang/prometheus/promhttp
-go get github.com/linkedin/goavro
+go mod download
 ```
 
 ## Build and Run the Server
