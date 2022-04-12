@@ -3,93 +3,86 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
-	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/linkedin/goavro"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rcrowley/go-metrics"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-	"time"
 )
 
 var c metrics.Counter
 
-var codec *goavro.Codec
-var printRecords bool
+var logEventCodec *goavro.Codec
+var metaCodec *goavro.Codec
 
 type handler struct{}
 
-var (
-	counter = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "fluent_records_total",
-			Help: "Number of received records",
-		})
+const (
+	logEventAvroSchema = `{  "type": "record",
+                               "name": "LogEvent",
+                               "fields": [{"name": "metadata", "type": "bytes"},
+                                          {"name": "avro_schema", "type": "string"},
+                                          {"name": "max_size", "type": "int"},
+                                          {"name": "payload", "type":{"type":"array","items":"bytes"}}]
+                             }`
+	metaSchema = `
+        { "type":"record",
+          "name":"metadata",
+          "fields": [
+  	         {"name": "wd_platform", "type":"string"},{"name": "wd_env_physical", "type":"string"},{"name": "wd_dc_physical", "type":"string"},
+			 {"name": "wd_env_logical", "type":"string"},{"name": "wd_service", "type":"string"},{"name": "wd_owner", "type":"string"},
+             {"name": "wd_datatype", "type":"string"},{"name": "wd_objectname", "type":"string"},{"name": "wd_solas", "type":"string"},
+			 {"name": "swh_server", "type":"string"},{"name": "wd_service_instance", "type":"string"}
+	      ]
+	    } `
 )
 
 func avroHandler(w http.ResponseWriter, r *http.Request) {
 	bodyData, _ := ioutil.ReadAll(r.Body)
-	record, _, err := codec.NativeFromBinary(bodyData)
+	logEvent, _, err := logEventCodec.NativeFromBinary(bodyData)
 	if err != nil {
-		fmt.Println("error parsing avro data:", err)
+		log.Fatal(err)
 	}
-	if printRecords {
-		fmt.Println("parsed record:", record)
+	logEv := logEvent.(map[string]interface{})
+	recordSchemaData, ok := logEv["avro_schema"]
+	if !ok {
+		w.Write([]byte("{\"status\":\"fail\",\"errors\":true}"))
+		return
 	}
-	counter.Inc()
-	c.Inc(1)
-	w.Write([]byte("{\"status\":\"ok\",\"errors\":false}"))
-}
-
-func jsonHandler(w http.ResponseWriter, r *http.Request) {
-	dec := json.NewDecoder(r.Body)
-	for {
-		var doc map[string]interface{}
-
-		err := dec.Decode(&doc)
-		if err == io.EOF {
-			break
-		}
-		if printRecords {
-			fmt.Println("parsed record:", doc)
-		}
-		counter.Inc()
-		c.Inc(1)
+	recordCodec, err := goavro.NewCodec(string(recordSchemaData.(string)))
+	if err != nil {
+		log.Fatal(err)
 	}
+	fmt.Println("\n\n==========logevent===========")
+	payloads := logEv["payload"].([]interface{})
+	fmt.Println("records:")
+	for _, p := range payloads {
+		payload := p.([]uint8)
+		record, _, _ := recordCodec.NativeFromBinary(payload)
+		fmt.Println(record)
+	}
+	metadata, _, err := metaCodec.NativeFromBinary(logEv["metadata"].([]uint8))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("metadata:")
+	fmt.Println(metadata)
 	w.Write([]byte("{\"status\":\"ok\",\"errors\":false}"))
 }
 
 func main() {
-	printMetrics := flag.Bool("printmetrics", false, "print metrics to the console")
-	avroSchema := flag.String("avro-schema-path", "", "specify file path containing avro schema. this disables json parsing.")
-	flag.BoolVar(&printRecords, "printrecords", true, "print request records")
-	flag.Parse()
-
-	if *avroSchema != "" {
-		schemaData, err := ioutil.ReadFile(*avroSchema)
-		if err != nil {
-			log.Fatal(err)
-		}
-		avroCodec, err := goavro.NewCodec(string(schemaData))
-		if err != nil {
-			log.Fatal(err)
-		}
-		codec = avroCodec
+	if avroCodec, err := goavro.NewCodec(string(logEventAvroSchema)); err == nil {
+		logEventCodec = avroCodec
+	} else {
+		log.Fatal(err)
 	}
 
-	c = metrics.NewCounter()
-	metrics.Register("records", c)
-
-	if *printMetrics {
-		go metrics.Log(metrics.DefaultRegistry, 1*time.Second,
-			log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
+	if avroCodec, err := goavro.NewCodec(string(metaSchema)); err == nil {
+		metaCodec = avroCodec
+	} else {
+		log.Fatal(err)
 	}
 
 	caCert, err := ioutil.ReadFile("client.crt")
@@ -107,15 +100,8 @@ func main() {
 		TLSConfig: cfg,
 	}
 
-	prometheus.MustRegister(counter)
-
 	r := mux.NewRouter()
-	r.Handle("/metrics", promhttp.Handler())
-	if codec != nil {
-		r.PathPrefix("/").HandlerFunc(avroHandler)
-	} else {
-		r.PathPrefix("/").HandlerFunc(jsonHandler)
-	}
+	r.PathPrefix("/").HandlerFunc(avroHandler)
 	http.Handle("/", r)
 
 	log.Print("Starting server at https://127.0.0.1:8443")

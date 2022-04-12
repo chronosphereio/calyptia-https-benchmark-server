@@ -1,7 +1,0 @@
-{
-	"name": "dummy",
-	"type": "record",
-	"fields" : [
-		{"name":"message","type":"string"}
-	]
-}
