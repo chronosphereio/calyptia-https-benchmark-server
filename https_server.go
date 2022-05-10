@@ -56,6 +56,14 @@ func avroHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	fmt.Println("\n\n==========logevent===========")
+	fmt.Println("==========headers===========")
+	for name, values := range r.Header {
+		// Loop over all values for the name.
+		for _, value := range values {
+			fmt.Println(name, value)
+		}
+	}
+	fmt.Println("==========payload===========")
 	payloads := logEv["payload"].([]interface{})
 	fmt.Println("records:")
 	for _, p := range payloads {
