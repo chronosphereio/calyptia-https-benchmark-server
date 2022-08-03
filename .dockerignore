@@ -1,0 +1,8 @@
+# Ignore everything by default
+*
+# Allow the following
+!*.crt
+!server.key
+!go.*
+!*.go
+!LICENSE

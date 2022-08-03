@@ -1,0 +1,51 @@
+name: CI build
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  build-container-images:
+    permissions:
+      contents: read
+      packages: write
+    name: Build multi-arch container images
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata from Github
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images:
+          name=ghcr.io/${{ github.repository }}
+        labels: |
+          org.opencontainers.image.description="Calyptia HTTPS Benchmark Server for Fluent Bit"
+          org.opencontainers.image.url="https://calyptia.com/products/"
+          org.opencontainers.image.licenses="Apache 2.0"
+
+    - name: Build the image
+      uses: docker/build-push-action@v3
+      with:
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64, linux/arm64
+        push: true
+        load: false
