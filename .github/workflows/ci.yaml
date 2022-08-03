@@ -35,7 +35,7 @@ jobs:
       uses: docker/metadata-action@v4
       with:
         images:
-          name=${{ github.repository }}
+          name=ghcr.io/${{ github.repository }}
         labels: |
           org.opencontainers.image.description="Calyptia HTTPS Benchmark Server for Fluent Bit"
           org.opencontainers.image.url="https://calyptia.com/products/"
