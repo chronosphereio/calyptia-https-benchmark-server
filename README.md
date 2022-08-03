@@ -1,14 +1,26 @@
 # Fluent HTTPs Benchmark Server
 
-This is a HTTPs Server that measure the numbers of JSON records received per request. The metrics are printed to the terminal  interface and also exposed through a Prometheus endpoint ```/metrics```.
+This is a HTTPs Server that measure the numbers of JSON records received per request. The metrics are printed to the terminal  interface and also exposed through a Prometheus endpoint `/metrics`.
 
-The service works in the TCP/TLS port ```8443```
+The service works in the TCP/TLS port `8443`
+
+There is a docker-compose stack provided the gives you an all-in-one example with Prometheus, Fluent Bit and this server:
+
+```shell
+docker compose up
+```
+
+A Dockerfile is provided as well to build and run the server easily.
+
+```shell
+docker build -t https-benchmark-server .
+```
 
 ## Install dependencies
 
-Install Go dependencies
+Install Go dependencies locally
 
-```bash
+```shell
 go get github.com/gorilla/mux
 go get github.com/rcrowley/go-metrics
 go get github.com/prometheus/client_golang/prometheus
@@ -18,7 +30,7 @@ go get github.com/linkedin/goavro
 
 ## Build and Run the Server
 
-```sh
+```shell
 go build
 ./https-benchmark-server
 ```
@@ -29,13 +41,13 @@ This repository provides a Prometheus configuration file ([prometheus-config.yml
 
 Just run Prometheus from the command line:
 
-```
+```shell
 prometheus --config.file=prometheus-config.yaml
 ```
 
 To query the data in Prometheus dashboard:
 
-- Go to http://127.0.0.1:9090
+- Go to <http://127.0.0.1:9090>
 - Write the query: ```irate(fluent_records_total[1m])```
 - Click on the Graph Tab
 
@@ -43,7 +55,7 @@ To query the data in Prometheus dashboard:
 
 Start the HTTPs Server in one terminal, in the other start Fluent Bit
 
-```
+```shell
 fluent-bit -i dummy                  \
               -p rate=100000         \
            -o http://127.0.0.1:8443  \
@@ -56,10 +68,9 @@ fluent-bit -i dummy                  \
 
 ## Expected Output
 
-In ```https-benchmark-server``` stderr you should see some stats like this:
+In `https-benchmark-server` stderr you should see some stats like this:
 
-
-```
+```shell
 $ ./https-benchmark-server
 2020/12/27 23:11:55 Starting server at https://127.0.0.1:8443
 metrics: 23:11:58.164353 counter records

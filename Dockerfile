@@ -1,4 +1,4 @@
-FROM golang:1.15
+FROM golang:1.18
 
 RUN go get github.com/gorilla/mux
 RUN go get github.com/rcrowley/go-metrics
