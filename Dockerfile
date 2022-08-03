@@ -1,15 +1,13 @@
-FROM golang:1.18
+FROM golang:1.18 as builder
 
-RUN go get github.com/gorilla/mux
-RUN go get github.com/rcrowley/go-metrics
-RUN go get github.com/prometheus/client_golang/prometheus
-RUN go get github.com/prometheus/client_golang/prometheus/promhttp
-RUN go get github.com/linkedin/goavro
+WORKDIR /calyptia/https-benchmark-server
 
-WORKDIR /go/src/https-benchmark-server
+# Cache go module setup
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+# Now copy and build source
 COPY . .
+RUN go build -o https-benchmark-server
 
-RUN go build
-RUN go install
-
-CMD ["https-benchmark-server"]
+CMD [ "./https-benchmark-server" ]

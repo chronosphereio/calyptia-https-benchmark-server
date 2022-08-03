@@ -13,24 +13,39 @@ docker compose up
 A Dockerfile is provided as well to build and run the server easily.
 
 ```shell
-docker build -t https-benchmark-server .
-```
-
-## Install dependencies
-
-Install Go dependencies locally
-
-```shell
-go get github.com/gorilla/mux
-go get github.com/rcrowley/go-metrics
-go get github.com/prometheus/client_golang/prometheus
-go get github.com/prometheus/client_golang/prometheus/promhttp
-go get github.com/linkedin/goavro
+$ docker build -t https-benchmark-server .
+Sending build context to Docker daemon  195.1kB
+Step 1/7 : FROM golang:1.18 as builder
+ ---> 2d952adaec1e
+Step 2/7 : WORKDIR /calyptia/https-benchmark-server
+ ---> Using cache
+ ---> 9b6f293b1670
+Step 3/7 : COPY go.mod go.sum ./
+ ---> Using cache
+ ---> 689d8e0822e8
+Step 4/7 : RUN go mod download && go mod verify
+ ---> Using cache
+ ---> a6ef9f48c476
+Step 5/7 : COPY . .
+ ---> 733895824568
+Step 6/7 : RUN go build -o https-benchmark-server
+ ---> Running in 08b842b5b02b
+Removing intermediate container 08b842b5b02b
+ ---> b192ea24bd11
+Step 7/7 : CMD [ "./https-benchmark-server" ]
+ ---> Running in 4b56cb36b983
+Removing intermediate container 4b56cb36b983
+ ---> 66ecb69b4f14
+Successfully built 66ecb69b4f14
+Successfully tagged https-benchmark-server:latest
+$ docker run --rm -it -p 8443:8443 https-benchmark-server
+2022/08/03 08:55:03 Starting server at https://127.0.0.1:8443
 ```
 
 ## Build and Run the Server
 
 ```shell
+go mod download
 go build
 ./https-benchmark-server
 ```
@@ -48,8 +63,10 @@ prometheus --config.file=prometheus-config.yaml
 To query the data in Prometheus dashboard:
 
 - Go to <http://127.0.0.1:9090>
-- Write the query: ```irate(fluent_records_total[1m])```
+- Write the query: `irate(fluent_records_total[1m])`
 - Click on the Graph Tab
+
+![Prometheus metrics example](resources/prom-screenshot.png)
 
 ## Ingesting data with Fluent Bit
 
