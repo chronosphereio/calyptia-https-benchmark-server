@@ -90,7 +90,7 @@ func main() {
 	avroSchema := flag.String("avro-schema-path", "", "specify file path containing avro schema. this disables json parsing.")
 	flag.BoolVar(&printRecords, "printrecords", true, "print request records")
 	flag.IntVar(&delaySeconds, "delayseconds", 0, "set up delaying seconds")
-	flag.IntVar(&drops, "drops", 0, "rate of failures")
+	flag.IntVar(&drops, "drops", 0, "will drop 1 message every DROPS messages")
 	flag.Parse()
 
 	if *avroSchema != "" {
