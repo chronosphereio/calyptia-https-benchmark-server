@@ -23,6 +23,9 @@ var c metrics.Counter
 
 var codec *goavro.Codec
 var printRecords bool
+var delaySeconds int
+var delayer <-chan time.Time
+var seconds time.Duration
 
 type handler struct{}
 
@@ -35,6 +38,9 @@ var (
 )
 
 func avroHandler(w http.ResponseWriter, r *http.Request) {
+	if delayer != nil {
+		<-delayer
+	}
 	bodyData, _ := ioutil.ReadAll(r.Body)
 	record, _, err := codec.NativeFromBinary(bodyData)
 	if err != nil {
@@ -49,6 +55,9 @@ func avroHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func jsonHandler(w http.ResponseWriter, r *http.Request) {
+	if delayer != nil {
+		<-delayer
+	}
 	dec := json.NewDecoder(r.Body)
 	for {
 		var doc map[string]interface{}
@@ -70,6 +79,7 @@ func main() {
 	printMetrics := flag.Bool("printmetrics", false, "print metrics to the console")
 	avroSchema := flag.String("avro-schema-path", "", "specify file path containing avro schema. this disables json parsing.")
 	flag.BoolVar(&printRecords, "printrecords", true, "print request records")
+	flag.IntVar(&delaySeconds, "delayseconds", 0, "set up delaying seconds")
 	flag.Parse()
 
 	if *avroSchema != "" {
@@ -86,6 +96,12 @@ func main() {
 
 	c = metrics.NewCounter()
 	metrics.Register("records", c)
+	seconds = time.Duration(delaySeconds)
+	delayer = nil
+	if seconds > 0 {
+		fmt.Printf("handler will de delayed with %d second(s)\n", delaySeconds)
+		delayer = time.Tick(seconds * time.Second)
+	}
 
 	if *printMetrics {
 		go metrics.Log(metrics.DefaultRegistry, 1*time.Second,
