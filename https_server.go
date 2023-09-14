@@ -26,6 +26,8 @@ var printRecords bool
 var delaySeconds int
 var delayer <-chan time.Time
 var seconds time.Duration
+var drops int
+var callsCounter int
 
 type handler struct{}
 
@@ -55,6 +57,7 @@ func avroHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func jsonHandler(w http.ResponseWriter, r *http.Request) {
+	callsCounter++
 	if delayer != nil {
 		<-delayer
 	}
@@ -72,7 +75,14 @@ func jsonHandler(w http.ResponseWriter, r *http.Request) {
 		counter.Inc()
 		c.Inc(1)
 	}
-	w.Write([]byte("{\"status\":\"ok\",\"errors\":false}"))
+
+	//each DROPS calls, return error 400
+	if (drops > 0) && (callsCounter%drops == 0) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("{\"status\":\"NOK\",\"errors\":true}"))
+	} else {
+		w.Write([]byte("{\"status\":\"ok\",\"errors\":false}"))
+	}
 }
 
 func main() {
@@ -80,6 +90,7 @@ func main() {
 	avroSchema := flag.String("avro-schema-path", "", "specify file path containing avro schema. this disables json parsing.")
 	flag.BoolVar(&printRecords, "printrecords", true, "print request records")
 	flag.IntVar(&delaySeconds, "delayseconds", 0, "set up delaying seconds")
+	flag.IntVar(&drops, "drops", 0, "rate of failures")
 	flag.Parse()
 
 	if *avroSchema != "" {
